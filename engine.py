@@ -1,6 +1,6 @@
 import psycopg2
 from adapters import PostgresAdapter, SQLiteAdapter
-import os
+import os, sys
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -72,24 +72,48 @@ def transform(data):
 
 # ---------- RUN PIPELINE ----------
 # TODO: make run command dynamic and reversible (manually choosing source & tagret)
-def run():
-    source = PostgresAdapter({
-        "dbname": os.getenv('DB_NAME'),
-        "user": os.getenv('DB_USER'),
-        "password": os.getenv('DB_PASS'),
-        "host": os.getenv('HOST'),
-        "port": os.getenv('DB_PORT')
-    })
+import argparse
+def run(source, target, old_table, new_table):
+    if source == 'postgres' and target == 'sqlite':
+        source = PostgresAdapter({
+            "dbname": os.getenv('DB_NAME'),
+            "user": os.getenv('DB_USER'),
+            "password": os.getenv('DB_PASS'),
+            "host": os.getenv('HOST'),
+            "port": os.getenv('DB_PORT')
+        })
 
-    target = SQLiteAdapter("db.sqlite3")
+        target = SQLiteAdapter("db.sqlite3")
+    else:
+        source = SQLiteAdapter("db.sqlite3")
+        
+        target = PostgresAdapter({
+            "dbname": os.getenv('DB_NAME'),
+            "user": os.getenv('DB_USER'),
+            "password": os.getenv('DB_PASS'),
+            "host": os.getenv('HOST'),
+            "port": os.getenv('DB_PORT')
+        })
 
     source.connect()
     target.connect()
 
-    data = source.fetch_all("users")
+    data = source.fetch_all(old_table)
     transformed = transform(data)
-    target.insert("customers", transformed)
+    target.insert(new_table, transformed)
 
 
 if __name__ == "__main__":
-    run()
+    
+    parser = argparse.ArgumentParser(description='simple ETL data script')
+    parser.add_argument("--source", type=str, required=True)
+    parser.add_argument("--target", type=str, required=True)
+    parser.add_argument("--old_table", type=str, required=True)
+    parser.add_argument("--new_table", type=str, required=True)
+    args = parser.parse_args()
+    source = args.source
+    target = args.target
+    old_table = args.old_table
+    new_table = args.new_table
+    
+    run(source, target, old_table, new_table)
