@@ -1,5 +1,7 @@
 import psycopg2
 import sqlite3
+import psycopg2.errors as pg_errors
+
 
 
 class BaseAdapter:
@@ -58,13 +60,23 @@ class PostgresAdapter(BaseAdapter):
             """
         )
         for row in data:
-            cursor.execute(
-                f"""
-                INSERT INTO {table_name} (full_name, email_address)
-                VALUES (%s, %s)
-                """,
-                (row["full_name"], row["email_address"])
-            )
+            try:
+                cursor.execute(
+                    f"""
+                    INSERT INTO {table_name} (full_name, email_address)
+                    VALUES (%s, %s)
+                    """,
+                    (row["full_name"], row["email_address"])
+                )
+            except pg_errors.UndefinedColumn:
+                self.conn.rollback()
+                cursor.execute(
+                    f"""
+                    ALTER TABLE {table_name}
+                    ADD COLUMN IF NOT EXISTS full_name VARCHAR(255) NOT NULL,
+                    ADD COLUMN IF NOT EXISTS email_address VARCHAR(255) NOT NULL;
+                    """
+                )
 
         self.conn.commit()
         print(f"Loaded {len(data)} records")
