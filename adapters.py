@@ -110,6 +110,7 @@ class SQLiteAdapter(BaseAdapter):
 
     def insert(self, table_name, data):
         cursor = self.conn.cursor()
+        # print(len(data))
         cursor.execute(
             f"""
             CREATE TABLE IF NOT EXISTS {table_name} (
@@ -119,6 +120,7 @@ class SQLiteAdapter(BaseAdapter):
             """
         )
         for row in data:
+            # print(row)
             cursor.execute(
                 f"""
                 INSERT INTO {table_name} (full_name, email_address)
@@ -128,3 +130,4 @@ class SQLiteAdapter(BaseAdapter):
             )
 
         self.conn.commit()
+        print(f"Loaded {len(data)} records")
