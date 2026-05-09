@@ -149,10 +149,5 @@ if __name__ == "__main__":
     run(source, target, old_table, new_table, column_mapping)
     """
     run command:
-    python engine.py 
-    --source postgres
-    --target sqlite
-    --old_table users
-    --new_table users
-    --column_mapping '{"customer_name": "full_name", "customer_email": "email_address"}'
+    python engine.py --source postgres --target sqlite --old_table users --new_table users --column_mapping '{"customer_name": "full_name", "customer_email": "email_address"}'
     """
