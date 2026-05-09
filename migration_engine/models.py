@@ -12,6 +12,9 @@ class ConnectionProfile(models.Model):
     password = models.CharField(max_length=255, blank=True, default="")
     ssl_mode = models.CharField(max_length=50, blank=True, default="prefer")
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.name
 
 
 class MigrationJob(models.Model):
@@ -38,6 +41,8 @@ class MigrationJob(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"{self.name}, {self.stage}"
 
 class MigrationRunLog(models.Model):
     LEVELS = (("INFO", "INFO"), ("WARNING", "WARNING"), ("ERROR", "ERROR"))
@@ -46,3 +51,6 @@ class MigrationRunLog(models.Model):
     level = models.CharField(max_length=20, choices=LEVELS, default="INFO")
     message = models.TextField()
     ts = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.job.name}, {self.level}, {self.stage}"

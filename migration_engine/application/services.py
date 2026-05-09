@@ -53,7 +53,7 @@ def run_job(job):
 
         job.status = "VERIFYING"
         job.stage = "verify"
-        log(job, "verify", "row-count validation passed" if job.rows_written <= job.rows_read else "row-count warning", "INFO")
+        log(job, "verify", "row-count validation passed" if job.rows_written == job.rows_read else "row-count warning", "INFO")
 
         job.status = "SUCCESS"
         job.stage = "complete"
