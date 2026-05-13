@@ -1,30 +1,307 @@
 # Database Migration Tool - Complete Documentation
 
-## Overview
+## Project Overview
 
-This is a **Django-based Database Migration Tool** that provides ETL (Extract-Transform-Load) functionality to migrate data between SQLite and PostgreSQL databases. It follows a clean architecture pattern with domain, application, and API layers.
+This is a **Django-based Database Migration Tool** that provides ETL (Extract-Transform-Load) functionality to migrate data between SQLite and PostgreSQL databases. It follows a clean architecture pattern with domain, application, and API layers. The project is undergoing refactoring from standalone Python scripts to a modular Django application with a REST API.
+
+### Project Status
+
+- **Phase**: Refactoring (from standalone CLI to Django REST API)
+- **Framework**: Django 6.0.3 + Django REST Framework
+- **Supported Databases**: SQLite, PostgreSQL
+- **Authentication**: JWT (via djangorestframework_simplejwt)
+- **Task Queue**: Celery (configured but async execution not yet in core service)
+- **Python Version**: 3.x
+- **Database**: SQLite (dev), PostgreSQL (production)
 
 ---
 
-## Architecture
+## Repository Structure
 
 ```
-Domain Layer (Business Logic)
-├─ Adapters: Database abstraction (SQLite, PostgreSQL)
-└─ ETL: Data transformation logic
+db-migration-tool/
+├── .env                              # Environment variables (DB credentials)
+├── .env.example                      # .env template
+├── .gitignore                        # Git ignore patterns (env/, db.sqlite3, __pycache__, venv/)
+├── .git/                             # Git repository
+├── starter.txt                       # Dependencies/requirements file
+├── engine.py                         # Legacy CLI entry point (root-level)
+├── adapters.py                       # Legacy adapter implementations
+├── manage.py                         # Django management script
+├── db.sqlite3                        # Development database
+│
+├── config/                           # Django project configuration
+│   ├── __init__.py
+│   ├── settings.py                   # Django settings, installed apps
+│   ├── urls.py                       # URL routing (includes migration_engine.api.urls)
+│   ├── asgi.py                       # ASGI configuration
+│   └── wsgi.py                       # WSGI configuration
+│
+├── migration_engine/                 # Main Django app
+│   ├── __init__.py
+│   ├── apps.py                       # App configuration
+│   ├── models.py                     # ORM models (ConnectionProfile, MigrationJob, MigrationRunLog)
+│   ├── admin.py                      # Django admin registration
+│   ├── api/                          # REST API layer
+│   │   ├── __init__.py
+│   │   ├── serializers.py            # DRF serializers
+│   │   ├── views.py                  # APIView classes
+│   │   └── urls.py                   # API endpoint routing
+│   ├── application/                  # Business logic/orchestration
+│   │   ├── __init__.py
+│   │   ├── services.py               # run_job(), _build_adapter(), log()
+│   │   └── workflow.py               # execute() entry point
+│   ├── domain/                       # Business domain (no Django dependencies)
+│   │   ├── __init__.py
+│   │   ├── adapters/                 # Database abstraction
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py               # BaseAdapter abstract class
+│   │   │   ├── postgres.py           # PostgresAdapter implementation
+│   │   │   └── sqlite.py             # SQLiteAdapter implementation
+│   │   └── etl/                      # ETL pipeline
+│   │       ├── __init__.py
+│   │       └── transformer.py        # transform() function
+│   ├── infrastructure/               # Infrastructure layer (logging, tasks)
+│   │   └── __init__.py
+│   ├── migrations/                   # Django migrations
+│   │   └── 0001_initial.py
+│   └── __pycache__/
+│
+├── venv/                             # Virtual environment (excluded from git)
+├── docs_etl_api_contract.md          # API specification (MVP contract)
+├── docs_refactor_plan.md             # Refactor roadmap and architecture plan
+└── bodies.md                         # Comprehensive documentation (this file)
+```
 
-Application Layer (Use Cases)
-├─ Services: Business workflow orchestration
-└─ Workflow: Execution coordinator
+---
 
+## Environment & Configuration
+
+### .env File
+
+```env
+DB_NAME=source
+DB_USER=anyuseryouwant
+DB_PASS=getyourownpassword
+DB_PORT=thisismyport(8080)
+HOST=itsyourhome
+```
+
+**Purpose**: Stores database credentials for PostgreSQL connections, loaded via `python-dotenv`.
+**Usage**: Referenced in `config/settings.py` and `application/services.py` for adapter initialization.
+
+### .gitignore
+
+```
+env/
+db.sqlite3
+**/__pycache__/
+.env
+venv/
+```
+
+Excludes virtual environment, environment files, cache, and development database from version control.
+
+### starter.txt - Key Dependencies
+
+Major packages installed:
+
+- **Django 6.0.3**: Web framework core
+- **Django REST Framework 3.17.0**: REST API toolkit
+- **psycopg2 2.9.11**: PostgreSQL driver
+- **djangorestframework_simplejwt 5.5.1**: JWT authentication
+- **django-allauth 65.15.0**: User/social auth
+- **dj-rest-auth 7.2.0**: REST authentication endpoints
+- **celery 5.6.2**: Task queue (configured, not yet integrated into core)
+- **django-celery-beat 2.9.0**: Celery periodic tasks
+- **django-filter 25.2**: Querystring-based filtering
+- **djongo 1.2.31**: MongoDB integration (in requirements but not used)
+
+---
+
+## Django Settings & Configuration
+
+### config/settings.py - Key Configuration
+
+**Security**:
+
+- `SECRET_KEY`: Set (security warning in comments for production use)
+- `DEBUG = True`: Development mode
+- `ALLOWED_HOSTS = ["localhost"]`
+
+**Installed Apps**:
+
+```python
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    # Third-party
+    'djongo',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
+    'allauth',
+    'django_filters',
+    'allauth.account',
+    'allauth.socialaccount',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+    # Custom app
+    'migration_engine',
+]
+```
+
+**Database**:
+
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',  # Development DB
+    },
+    'postgres': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),       # 'source'
+        'USER': 'postgres',
+        'PASSWORD': 'yourpasswordhere',
+        'HOST': 'localhost',
+        'PORT': 'getyourownhost',
+    }
+}
+```
+
+### config/urls.py - URL Routing
+
+```python
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/v1/', include('migration_engine.api.urls')),
+]
+```
+
+**Base URL for all migration endpoints**: `/api/v1/migrations/*`
+
+---
+
+## Legacy Implementation (Root-Level Files)
+
+### engine.py
+
+**Status**: Legacy/Reference implementation kept for backward compatibility.
+
+**Purpose**: Standalone Python script for manual ETL execution via CLI.
+
+**Key Functions**:
+
+1. **transform(data, column_mapping, drop_nones=True)**
+   - Input: List of row dictionaries from database query
+   - Process: Maps source columns to target columns, drops rows with None values
+   - Output: List of transformed dictionaries
+   - Logic: Iterates through rows, checks each mapped column for None, skips entire row if found and drop_nones=True
+
+2. **run(source, target, old_table, new_table, column_mapping)**
+   - Dispatcher for CLI arguments
+   - Routes: postgres→sqlite or sqlite→postgres
+   - Steps:
+     1. Instantiate adapters (PostgresAdapter or SQLiteAdapter)
+     2. Connect to both databases
+     3. Fetch all rows from source table
+     4. Transform using column_mapping
+     5. Insert into target table
+
+**CLI Entry Point**:
+
+```bash
+python engine.py \
+  --source postgres \
+  --target sqlite \
+  --old_table users \
+  --new_table users \
+  --column_mapping '{"customer_name": "full_name", "customer_email": "email_address"}'
+```
+
+**Arguments**:
+
+- `--source`: "postgres" or "sqlite"
+- `--target`: "postgres" or "sqlite"
+- `--old_table`: Source table name
+- `--new_table`: Target table name
+- `--column_mapping`: JSON string of column mappings
+
+**Note**: Does NOT use Django models or API. Superseded by Django REST API implementation.
+
+### adapters.py
+
+**Status**: Legacy/Reference implementation. Partially re-implemented in `migration_engine/domain/adapters/`.
+
+**Classes**:
+
+1. **BaseAdapter** (abstract)
+   - Methods: `connect()`, `fetch_all(table_name)`, `insert(table_name, data)`, `close()`
+   - Default placeholder: `%s`
+
+2. **PostgresAdapter**
+   - Placeholder: `%s` (for psycopg2)
+   - **Issue**: `insert()` method has hardcoded columns (`full_name`, `email_address`)
+   - Includes schema auto-migration for undefined columns
+   - Uses `psycopg2.connect()` with config dict
+
+3. **SQLiteAdapter**
+   - Placeholder: `%s` (inconsistent, should be `?` for sqlite3)
+   - **Issue**: `insert()` method has hardcoded columns (`full_name`, `email_address`)
+   - Additional helper: `create_table_from_data(table_name, data)` for dynamic schema
+   - Uses `sqlite3.connect()` with file path
+
+**Problems Addressed in Django Implementation**:
+
+- Generic column handling (not hardcoded)
+- Correct placeholder usage per database
+- Integration with Django ORM
+- Transaction management
+- Error handling and logging
+
+---
+
+## Clean Architecture Implementation
+
+### Architecture Layers
+
+```
 API Layer (HTTP Endpoints)
-├─ Views: REST endpoints
-└─ Serializers: Request/response validation
+├─ views.py: APIView classes handling requests/responses
+├─ serializers.py: DRF serializers for validation
+└─ urls.py: Endpoint routing
+
+Application Layer (Business Logic/Use Cases)
+├─ services.py: run_job(), _build_adapter(), log()
+└─ workflow.py: execute() orchestration entry point
+
+Domain Layer (Business Rules - Framework Agnostic)
+├─ adapters/base.py: BaseAdapter abstraction
+├─ adapters/postgres.py: PostgreSQL implementation
+├─ adapters/sqlite.py: SQLite implementation
+└─ etl/transformer.py: Data transformation logic
+
+Infrastructure Layer
+├─ models.py: Django ORM models
+├─ admin.py: Django admin registration
+└─ admin.py: Migration registration
 ```
+
+### Design Rationale
+
+- **Domain Layer** has NO Django dependencies → reusable, testable
+- **Application Layer** orchestrates domain + infrastructure
+- **API Layer** handles HTTP concerns only (serialization, routing)
+- **Infrastructure** bridges Django ORM with business logic
 
 ---
 
-## Core Models
+## Django Models (infrastructure/models.py)
 
 ### 1. ConnectionProfile – Database connection configuration
 
@@ -42,19 +319,142 @@ API Layer (HTTP Endpoints)
 
 ### 3. MigrationRunLog – Audit trail
 
+- Tracks a data migration operation from source to target table
+- Status lifecycle: `PENDING` → `PLANNING` → `PROFILING` → `MAPPING` → `TRANSFORMING` → `LOADING` → `VERIFYING` → `SUCCESS` (or `FAILED`)
+- Fields: `column_mapping` (JSON), `batch_size`, `stop_on_error`, `rows_read`, `rows_written`, `errors`
+- Use case: Represents a single migration task with all metadata and progress tracking
+
+### 3. MigrationRunLog – Audit trail
+
 - Logs each stage of the migration with timestamps
 - Fields: `stage`, `level` (INFO/WARNING/ERROR), `message`
 - Use case: Provides complete audit trail for debugging and monitoring
 
 ---
 
-## API Endpoints
+## Domain Layer - Database Adapters (migration_engine/domain/adapters/)
 
-### 1. Test Database Connections
+### base.py - BaseAdapter
 
+Abstract base class for all database adapters.
+
+**Purpose**: Define interface and share common logic for database operations.
+
+**Class Definition**:
+
+```python
+class BaseAdapter:
+    placeholder = "%s"  # Override in subclasses
+
+    def connect(self):
+        raise NotImplementedError
+
+    def fetch_all(self, table_name):
+        raise NotImplementedError
+
+    def insert(self, table_name, data):
+        # Generic implementation using placeholders
+        if not data:
+            return
+        columns = list(data[0].keys())
+        cols_str = ", ".join(columns)
+        placeholders = ", ".join([self.placeholder] * len(columns))
+        sql = f"INSERT INTO {table_name} ({cols_str}) VALUES ({placeholders})"
+        cursor = self.conn.cursor()
+        for row in data:
+            cursor.execute(sql, tuple(row.get(c) for c in columns))
+        self.conn.commit()
+
+    def close(self):
+        if getattr(self, "conn", None):
+            self.conn.close()
 ```
-POST /migrations/connections/test
+
+**Key Features**:
+
+- Generic `insert()` handles any column set (not hardcoded)
+- Uses placeholder strategy pattern for SQL dialects
+- Manages connection lifecycle safely
+
+### postgres.py - PostgresAdapter
+
+PostgreSQL-specific implementation.
+
+**Class Definition**:
+
+```python
+class PostgresAdapter(BaseAdapter):
+    placeholder = "%s"  # psycopg2 uses %s
+
+    def __init__(self, config):
+        self.config = config  # {dbname, user, password, host, port}
+        self.conn = None
+
+    def connect(self):
+        self.conn = psycopg2.connect(**self.config)
+
+    def fetch_all(self, table_name):
+        cursor = self.conn.cursor()
+        cursor.execute(f"SELECT * FROM {table_name}")
+        columns = [desc[0] for desc in cursor.description]
+        rows = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in rows]
 ```
+
+**Usage**:
+
+```python
+adapter = PostgresAdapter({
+    "dbname": "source",
+    "user": "postgres",
+    "password": "7toxicLamps",
+    "host": "localhost",
+    "port": 5432
+})
+adapter.connect()
+data = adapter.fetch_all("users")
+adapter.insert("users_new", data)
+adapter.close()
+```
+
+### sqlite.py - SQLiteAdapter
+
+SQLite-specific implementation.
+
+**Class Definition**:
+
+```python
+class SQLiteAdapter(BaseAdapter):
+    placeholder = "?"  # sqlite3 uses ?
+
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.conn = None
+
+    def connect(self):
+        self.conn = sqlite3.connect(self.db_path)
+
+    def fetch_all(self, table_name):
+        cursor = self.conn.cursor()
+        cursor.execute(f"SELECT * FROM {table_name}")
+        columns = [desc[0] for desc in cursor.description]
+        rows = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in rows]
+```
+
+**Usage**:
+
+```python
+adapter = SQLiteAdapter("/path/to/db.sqlite3")
+adapter.connect()
+data = adapter.fetch_all("users")
+adapter.insert("users_new", data)
+adapter.close()
+```
+
+---
+
+## ETL Layer - Data Transformation (migration_engine/domain/etl/transformer.py)
 
 **Purpose:** Validate that source and target databases are accessible before running migrations.
 
