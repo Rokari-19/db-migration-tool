@@ -36,22 +36,40 @@ def run_job(job):
         source.connect()
         target.connect()
 
-        source_schema = source.fetch_schema(job.old_table)
-        data = source.fetch_all(job.old_table)
-        job.rows_read = len(data)
-        log(job, "extract", f"extracted {len(data)} rows")
+        if job.old_table == "*":
+            table_pairs = [(table_name, table_name) for table_name in source.list_tables()]
+        else:
+            table_pairs = [(job.old_table, job.new_table)]
 
-        job.stage = "transform"
-        transformed = transform(data, job.column_mapping)
-        log(job, "transform", f"transformed {len(transformed)} rows")
+        total_rows_read = 0
+        total_rows_written = 0
 
-        job.status = "LOADING"
-        job.stage = "load"
-        job.save(update_fields=["status", "stage", "rows_read", "updated_at"])
+        for source_table, target_table in table_pairs:
+            source_schema = source.fetch_schema(source_table)
+            data = source.fetch_all(source_table)
+            total_rows_read += len(data)
+            log(job, "extract", f"extracted {len(data)} rows from {source_table}")
 
-        target_schema = target.map_schema_for_target(source_schema, job.column_mapping)
-        target.insert(job.new_table, transformed, schema=target_schema)
-        job.rows_written = len(transformed)
+            if job.column_mapping:
+                column_mapping = job.column_mapping
+            else:
+                source_columns = list(source_schema.keys()) or list(data[0].keys()) if data else []
+                column_mapping = {column: column for column in source_columns}
+
+            job.stage = "transform"
+            transformed = transform(data, column_mapping)
+            log(job, "transform", f"transformed {len(transformed)} rows for {source_table}")
+
+            job.status = "LOADING"
+            job.stage = "load"
+            job.save(update_fields=["status", "stage", "updated_at"])
+
+            target_schema = target.map_schema_for_target(source_schema, column_mapping)
+            target.insert(target_table, transformed, schema=target_schema)
+            total_rows_written += len(transformed)
+
+        job.rows_read = total_rows_read
+        job.rows_written = total_rows_written
 
         job.status = "VERIFYING"
         job.stage = "verify"

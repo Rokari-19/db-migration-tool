@@ -56,3 +56,15 @@ class PostgresAdapter(BaseAdapter):
                 "nullable": is_nullable == "YES",
             }
         return schema
+
+    def list_tables(self):
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+            ORDER BY table_name
+            """
+        )
+        return [row[0] for row in cursor.fetchall()]

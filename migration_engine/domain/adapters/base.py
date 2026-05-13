@@ -10,6 +10,9 @@ class BaseAdapter:
     def fetch_schema(self, table_name):
         raise NotImplementedError
 
+    def list_tables(self):
+        raise NotImplementedError
+
     def map_schema_for_target(self, source_schema, column_mapping):
         mapped = {}
         if not source_schema:

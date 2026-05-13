@@ -41,3 +41,15 @@ class SQLiteAdapter(BaseAdapter):
                 "nullable": not bool(not_null),
             }
         return schema
+
+    def list_tables(self):
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+            ORDER BY name
+            """
+        )
+        return [row[0] for row in cursor.fetchall()]

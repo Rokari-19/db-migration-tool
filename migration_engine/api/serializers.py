@@ -13,7 +13,7 @@ class MigrationPlanSerializer(serializers.Serializer):
     target_profile_id = serializers.IntegerField()
     old_table = serializers.CharField(max_length=120)
     new_table = serializers.CharField(max_length=120)
-    column_mapping = serializers.JSONField()
+    column_mapping = serializers.JSONField(required=False, default=dict)
     batch_size = serializers.IntegerField(default=500)
     stop_on_error = serializers.BooleanField(default=True)
 
