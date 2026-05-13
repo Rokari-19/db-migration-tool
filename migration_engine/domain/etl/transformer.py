@@ -6,14 +6,14 @@ def transform(data, column_mapping, drop_nones=True):
         is_valid = True
         
         for source_col, target_col in column_mapping.items():
-            print(source_col, target_col)
+            # print(source_col, target_col)
             value = row.get(source_col)
-            print(value)
+            # print(value)
             
             # Validation logic: if a mapped field is missing and we can't have NULLs
             if value is None and drop_nones:
                 is_valid = False
-                print(f"Validity: {is_valid}")
+                # print(f"Validity: {is_valid}")
                 break 
             
             new_row[target_col] = value
