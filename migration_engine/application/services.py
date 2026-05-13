@@ -36,6 +36,7 @@ def run_job(job):
         source.connect()
         target.connect()
 
+        source_schema = source.fetch_schema(job.old_table)
         data = source.fetch_all(job.old_table)
         job.rows_read = len(data)
         log(job, "extract", f"extracted {len(data)} rows")
@@ -48,7 +49,8 @@ def run_job(job):
         job.stage = "load"
         job.save(update_fields=["status", "stage", "rows_read", "updated_at"])
 
-        target.insert(job.new_table, transformed)
+        target_schema = target.map_schema_for_target(source_schema, job.column_mapping)
+        target.insert(job.new_table, transformed, schema=target_schema)
         job.rows_written = len(transformed)
 
         job.status = "VERIFYING"
