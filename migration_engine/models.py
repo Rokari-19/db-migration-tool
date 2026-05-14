@@ -2,7 +2,7 @@ from django.db import models
 
 
 class ConnectionProfile(models.Model):
-    DB_TYPES = (("sqlite", "SQLite"), ("postgres", "PostgreSQL"))
+    DB_TYPES = (("sqlite", "SQLite"), ("postgres", "PostgreSQL"), ("mongodb", "MongoDB"))
     name = models.CharField(max_length=120, unique=True)
     db_type = models.CharField(max_length=20, choices=DB_TYPES)
     database = models.CharField(max_length=255)
