@@ -5,6 +5,7 @@ from migration_engine.application.workflow import execute
 from migration_engine.domain.adapters.postgres import PostgresAdapter
 from migration_engine.domain.adapters.sqlite import SQLiteAdapter
 from migration_engine.domain.adapters.mongodb import MongoDBAdapter
+from migration_engine.infrastructure import HostedDBRef, get_hosted_db_wrapper
 from migration_engine.models import ConnectionProfile, MigrationJob
 from .serializers import ConnectionTestSerializer, MigrationPlanSerializer, MigrationJobStatusSerializer, MigrationLogSerializer
 
@@ -14,30 +15,44 @@ class ConnectionTestAPIView(APIView):
         serializer = ConnectionTestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        def resolve_hosted(conf):
+            hosted_db = conf.get("hosted_db")
+            if not hosted_db:
+                return {}
+            reference = HostedDBRef(
+                provider=hosted_db["provider"],
+                resource_id=hosted_db["resource_id"],
+                api_token=hosted_db.get("api_token", ""),
+                api_url=hosted_db.get("api_url", ""),
+                metadata=hosted_db.get("metadata", {}),
+            )
+            return get_hosted_db_wrapper(hosted_db["provider"]).resolve(reference)
+
         def check(conf):
             try:
+                resolved = resolve_hosted(conf)
                 if conf["db_type"] == "sqlite":
                     adapter = SQLiteAdapter(conf["database"])
                 elif conf["db_type"] == "mongodb":
                     adapter = MongoDBAdapter(
                         {
-                            "uri": conf.get("uri", ""),
-                            "database": conf["database"],
-                            "username": conf.get("username", ""),
-                            "password": conf.get("password", ""),
-                            "host": conf.get("host", "localhost"),
-                            "port": conf.get("port", 27017),
-                            "ssl_mode": conf.get("ssl_mode", "prefer"),
+                            "uri": conf.get("uri") or resolved.get("uri", ""),
+                            "database": conf.get("database") or resolved.get("database", ""),
+                            "username": conf.get("username") or resolved.get("username", ""),
+                            "password": conf.get("password") or resolved.get("password", ""),
+                            "host": conf.get("host") or resolved.get("host", "localhost"),
+                            "port": conf.get("port") or resolved.get("port", 27017),
+                            "ssl_mode": conf.get("ssl_mode") or resolved.get("ssl_mode", "prefer"),
                         }
                     )
                 else:
                     adapter = PostgresAdapter(
                         {
-                            "dbname": conf["database"],
-                            "user": conf.get("username", ""),
-                            "password": conf.get("password", ""),
-                            "host": conf.get("host", "localhost"),
-                            "port": conf.get("port", 5432),
+                            "dbname": conf.get("database") or resolved.get("database", ""),
+                            "user": conf.get("username") or resolved.get("username", ""),
+                            "password": conf.get("password") or resolved.get("password", ""),
+                            "host": conf.get("host") or resolved.get("host", "localhost"),
+                            "port": conf.get("port") or resolved.get("port", 5432),
                         }
                     )
                 adapter.connect()

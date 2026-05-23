@@ -1,10 +1,30 @@
 from rest_framework import serializers
-from migration_engine.models import ConnectionProfile, MigrationJob, MigrationRunLog
+from migration_engine.models import MigrationJob, MigrationRunLog
+
+
+class HostedDBConfigSerializer(serializers.Serializer):
+    provider = serializers.ChoiceField(choices=["render", "vercel", "railway", "netlify"])
+    resource_id = serializers.CharField(max_length=255)
+    api_url = serializers.URLField(required=False, allow_blank=True, default="")
+    api_token = serializers.CharField(required=False, allow_blank=True, default="")
+    metadata = serializers.JSONField(required=False, default=dict)
+
+
+class DBConnectionConfigSerializer(serializers.Serializer):
+    db_type = serializers.ChoiceField(choices=["sqlite", "postgres", "mongodb"])
+    database = serializers.CharField(max_length=255)
+    host = serializers.CharField(required=False, allow_blank=True, default="")
+    port = serializers.IntegerField(required=False, allow_null=True)
+    username = serializers.CharField(required=False, allow_blank=True, default="")
+    password = serializers.CharField(required=False, allow_blank=True, default="")
+    uri = serializers.CharField(required=False, allow_blank=True, default="")
+    ssl_mode = serializers.CharField(required=False, allow_blank=True, default="prefer")
+    hosted_db = HostedDBConfigSerializer(required=False)
 
 
 class ConnectionTestSerializer(serializers.Serializer):
-    source = serializers.JSONField()
-    target = serializers.JSONField()
+    source = DBConnectionConfigSerializer()
+    target = DBConnectionConfigSerializer()
 
 
 class MigrationPlanSerializer(serializers.Serializer):
