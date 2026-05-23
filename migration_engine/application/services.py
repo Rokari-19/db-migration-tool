@@ -2,6 +2,7 @@ import os
 from django.utils import timezone
 from migration_engine.domain.adapters.postgres import PostgresAdapter
 from migration_engine.domain.adapters.sqlite import SQLiteAdapter
+from migration_engine.domain.adapters.mongodb import MongoDBAdapter
 from migration_engine.domain.etl.transformer import transform
 from migration_engine.models import MigrationRunLog
 
@@ -15,6 +16,18 @@ def _build_adapter(profile):
                 "password": profile.password or os.getenv("DB_PASS"),
                 "host": profile.host or os.getenv("HOST", "localhost"),
                 "port": profile.port or os.getenv("DB_PORT", "5432"),
+            }
+        )
+    if profile.db_type == "mongodb":
+        return MongoDBAdapter(
+            {
+                "uri": profile.uri or os.getenv("MONGODB_URI", ""),
+                "database": profile.database,
+                "username": profile.username or os.getenv("DB_USER"),
+                "password": profile.password or os.getenv("DB_PASS"),
+                "host": profile.host or os.getenv("HOST", "localhost"),
+                "port": profile.port or os.getenv("DB_PORT", "27017"),
+                "ssl_mode": profile.ssl_mode,
             }
         )
     return SQLiteAdapter(profile.database)

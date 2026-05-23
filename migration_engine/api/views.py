@@ -4,6 +4,7 @@ from rest_framework import status
 from migration_engine.application.workflow import execute
 from migration_engine.domain.adapters.postgres import PostgresAdapter
 from migration_engine.domain.adapters.sqlite import SQLiteAdapter
+from migration_engine.domain.adapters.mongodb import MongoDBAdapter
 from migration_engine.models import ConnectionProfile, MigrationJob
 from .serializers import ConnectionTestSerializer, MigrationPlanSerializer, MigrationJobStatusSerializer, MigrationLogSerializer
 
@@ -17,6 +18,18 @@ class ConnectionTestAPIView(APIView):
             try:
                 if conf["db_type"] == "sqlite":
                     adapter = SQLiteAdapter(conf["database"])
+                elif conf["db_type"] == "mongodb":
+                    adapter = MongoDBAdapter(
+                        {
+                            "uri": conf.get("uri", ""),
+                            "database": conf["database"],
+                            "username": conf.get("username", ""),
+                            "password": conf.get("password", ""),
+                            "host": conf.get("host", "localhost"),
+                            "port": conf.get("port", 27017),
+                            "ssl_mode": conf.get("ssl_mode", "prefer"),
+                        }
+                    )
                 else:
                     adapter = PostgresAdapter(
                         {

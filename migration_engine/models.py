@@ -2,7 +2,7 @@ from django.db import models
 
 
 class ConnectionProfile(models.Model):
-    DB_TYPES = (("sqlite", "SQLite"), ("postgres", "PostgreSQL"))
+    DB_TYPES = (("sqlite", "SQLite"), ("postgres", "PostgreSQL"), ("mongodb", "MongoDB"))
     name = models.CharField(max_length=120, unique=True)
     db_type = models.CharField(max_length=20, choices=DB_TYPES)
     database = models.CharField(max_length=255)
@@ -10,6 +10,7 @@ class ConnectionProfile(models.Model):
     port = models.IntegerField(null=True, blank=True)
     username = models.CharField(max_length=255, blank=True, default="")
     password = models.CharField(max_length=255, blank=True, default="")
+    uri = models.TextField(blank=True, default="")
     ssl_mode = models.CharField(max_length=50, blank=True, default="prefer")
     created_at = models.DateTimeField(auto_now_add=True)
     
