@@ -4,30 +4,45 @@ from migration_engine.domain.adapters.postgres import PostgresAdapter
 from migration_engine.domain.adapters.sqlite import SQLiteAdapter
 from migration_engine.domain.adapters.mongodb import MongoDBAdapter
 from migration_engine.domain.etl.transformer import transform
+from migration_engine.infrastructure import HostedDBRef, get_hosted_db_wrapper
 from migration_engine.models import MigrationRunLog
 
 
+def _resolve_hosted(profile):
+    if not getattr(profile, "hosted_provider", ""):
+        return {}
+    reference = HostedDBRef(
+        provider=profile.hosted_provider,
+        resource_id=profile.hosted_resource_id,
+        api_token=profile.hosted_api_token,
+        api_url=profile.hosted_api_url,
+        metadata=profile.hosted_metadata or {},
+    )
+    return get_hosted_db_wrapper(profile.hosted_provider).resolve(reference)
+
+
 def _build_adapter(profile):
+    resolved = _resolve_hosted(profile)
     if profile.db_type == "postgres":
         return PostgresAdapter(
             {
-                "dbname": profile.database,
-                "user": profile.username or os.getenv("DB_USER"),
-                "password": profile.password or os.getenv("DB_PASS"),
-                "host": profile.host or os.getenv("HOST", "localhost"),
-                "port": profile.port or os.getenv("DB_PORT", "5432"),
+                "dbname": profile.database or resolved.get("database") or os.getenv("PGDATABASE") or os.getenv("DB_NAME"),
+                "user": profile.username or resolved.get("username") or os.getenv("PGUSER") or os.getenv("DB_USER"),
+                "password": profile.password or resolved.get("password") or os.getenv("PGPASSWORD") or os.getenv("DB_PASS"),
+                "host": profile.host or resolved.get("host") or os.getenv("PGHOST") or os.getenv("HOST", "localhost"),
+                "port": profile.port or resolved.get("port") or os.getenv("PGPORT") or os.getenv("DB_PORT", "5432"),
             }
         )
     if profile.db_type == "mongodb":
         return MongoDBAdapter(
             {
-                "uri": profile.uri or os.getenv("MONGODB_URI", ""),
-                "database": profile.database,
-                "username": profile.username or os.getenv("DB_USER"),
-                "password": profile.password or os.getenv("DB_PASS"),
-                "host": profile.host or os.getenv("HOST", "localhost"),
-                "port": profile.port or os.getenv("DB_PORT", "27017"),
-                "ssl_mode": profile.ssl_mode,
+                "uri": profile.uri or resolved.get("uri") or os.getenv("MONGODB_URI", ""),
+                "database": profile.database or resolved.get("database"),
+                "username": profile.username or resolved.get("username") or os.getenv("DB_USER"),
+                "password": profile.password or resolved.get("password") or os.getenv("DB_PASS"),
+                "host": profile.host or resolved.get("host") or os.getenv("HOST", "localhost"),
+                "port": profile.port or resolved.get("port") or os.getenv("DB_PORT", "27017"),
+                "ssl_mode": profile.ssl_mode or resolved.get("ssl_mode") or "prefer",
             }
         )
     return SQLiteAdapter(profile.database)

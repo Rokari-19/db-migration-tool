@@ -3,6 +3,7 @@ from django.db import models
 
 class ConnectionProfile(models.Model):
     DB_TYPES = (("sqlite", "SQLite"), ("postgres", "PostgreSQL"), ("mongodb", "MongoDB"))
+    HOSTED_PROVIDERS = (("", "None"), ("render", "Render"), ("vercel", "Vercel"), ("railway", "Railway"), ("netlify", "Netlify"))
     name = models.CharField(max_length=120, unique=True)
     db_type = models.CharField(max_length=20, choices=DB_TYPES)
     database = models.CharField(max_length=255)
@@ -12,8 +13,13 @@ class ConnectionProfile(models.Model):
     password = models.CharField(max_length=255, blank=True, default="")
     uri = models.TextField(blank=True, default="")
     ssl_mode = models.CharField(max_length=50, blank=True, default="prefer")
+    hosted_provider = models.CharField(max_length=20, choices=HOSTED_PROVIDERS, blank=True, default="")
+    hosted_resource_id = models.CharField(max_length=255, blank=True, default="")
+    hosted_api_url = models.URLField(blank=True, default="")
+    hosted_api_token = models.CharField(max_length=255, blank=True, default="")
+    hosted_metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     def __str__(self):
         return self.name
 
@@ -44,6 +50,7 @@ class MigrationJob(models.Model):
 
     def __str__(self):
         return f"{self.name}, {self.stage}"
+
 
 class MigrationRunLog(models.Model):
     LEVELS = (("INFO", "INFO"), ("WARNING", "WARNING"), ("ERROR", "ERROR"))
