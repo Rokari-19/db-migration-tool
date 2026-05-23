@@ -476,6 +476,20 @@ adapter.close()
   }
 }
 ```
+**or**
+```json
+{
+  "source": {
+    "db_type": "sqlite",
+    "database": "db.sqlite3"
+  },
+  "target": {
+    "db_type": "mongodb",
+    "database": "mongoDBmigrations",
+    "uri": "mongodb+srv://rokari:<db_password>@mongodbmigrations.xlmaux8.mongodb.net/?appName=mongoDBmigrations"
+  }
+}
+```
 
 **Data accepted:**
 
