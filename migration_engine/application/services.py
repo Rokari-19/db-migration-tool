@@ -21,6 +21,7 @@ def _build_adapter(profile):
     if profile.db_type == "mongodb":
         return MongoDBAdapter(
             {
+                "uri": profile.uri or os.getenv("MONGODB_URI", ""),
                 "database": profile.database,
                 "username": profile.username or os.getenv("DB_USER"),
                 "password": profile.password or os.getenv("DB_PASS"),

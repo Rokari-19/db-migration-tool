@@ -1039,3 +1039,16 @@ if __name__ == "__main__":
 8. Schema introspection and auto-mapping
 9. Data validation rules
 10. Rollback capabilities
+
+
+## MongoDB Atlas from Admin Panel
+
+1. Go to **/admin/migration_engine/connectionprofile/add/**.
+2. Set **db_type = mongodb**.
+3. Paste your Atlas PyMongo connection string into **uri** (for example `mongodb+srv://...`).
+4. Set **database** to the Atlas database name you want this app to use.
+5. Save, then run the connection-test API endpoint with the same fields.
+
+Notes:
+- If `uri` is provided, it is used first for MongoDB connections.
+- You can still use host/port/username/password fields when not using SRV URI.

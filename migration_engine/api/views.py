@@ -21,6 +21,7 @@ class ConnectionTestAPIView(APIView):
                 elif conf["db_type"] == "mongodb":
                     adapter = MongoDBAdapter(
                         {
+                            "uri": conf.get("uri", ""),
                             "database": conf["database"],
                             "username": conf.get("username", ""),
                             "password": conf.get("password", ""),
