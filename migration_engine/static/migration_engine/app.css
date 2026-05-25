@@ -1,0 +1,8 @@
+body { background: #f5f7fb; }
+main.container { margin-top: 1.5rem; }
+.status-badge { border-radius: 999px; padding: .2rem .65rem; font-size: .75rem; font-weight: 700; }
+.status-PENDING, .status-PLANNING, .status-PROFILING, .status-MAPPING, .status-TRANSFORMING, .status-LOADING, .status-VERIFYING { background:#fff3cd; color:#664d03; }
+.status-SUCCESS { background:#d1e7dd; color:#0f5132; }
+.status-FAILED { background:#f8d7da; color:#842029; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+@media (max-width: 900px){ .form-grid { grid-template-columns:1fr; } }
