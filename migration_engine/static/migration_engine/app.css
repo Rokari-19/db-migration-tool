@@ -1,0 +1,16 @@
+:root { --bg:#f3f5f9; --surface:#ffffff; --text:#0f172a; --muted:#64748b; --brand:#6366f1; }
+[data-theme='dark'] { --bg:#0b1220; --surface:#111827; --text:#e5e7eb; --muted:#9ca3af; --brand:#818cf8; }
+body { background: var(--bg); color:var(--text); transition:background .2s,color .2s; }
+nav, article, table, .card { background: var(--surface); border-radius:12px; }
+.hero { padding: 3rem 1.5rem; text-align:center; }
+.hero h1 { font-size: 2.4rem; margin-bottom:.3rem; }
+.hero p { color:var(--muted); }
+.hero-actions { display:flex; gap:.75rem; justify-content:center; flex-wrap:wrap; margin-top:1rem; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.card { padding:1rem; margin:1rem 0; }
+.helper { color:var(--muted); font-size:.9rem; }
+@media (max-width: 900px){ .form-grid { grid-template-columns:1fr; } }
+
+.alert { position: fixed; right: 1rem; top: 1rem; z-index: 1000; padding: .8rem 1rem; border-radius: 8px; max-width: 420px; }
+.alert.error { background: #7f1d1d; color: #fee2e2; }
+.alert.ok { background: #14532d; color: #dcfce7; }
