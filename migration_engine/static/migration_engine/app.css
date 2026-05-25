@@ -10,3 +10,7 @@ nav, article, table, .card { background: var(--surface); border-radius:12px; }
 .card { padding:1rem; margin:1rem 0; }
 .helper { color:var(--muted); font-size:.9rem; }
 @media (max-width: 900px){ .form-grid { grid-template-columns:1fr; } }
+
+.alert { position: fixed; right: 1rem; top: 1rem; z-index: 1000; padding: .8rem 1rem; border-radius: 8px; max-width: 420px; }
+.alert.error { background: #7f1d1d; color: #fee2e2; }
+.alert.ok { background: #14532d; color: #dcfce7; }
