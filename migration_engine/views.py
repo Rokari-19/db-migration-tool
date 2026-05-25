@@ -1,8 +1,16 @@
 from django.views.generic import TemplateView
 
 
+class HeroView(TemplateView):
+    template_name = "migration_engine/hero.html"
+
+
 class DashboardView(TemplateView):
     template_name = "migration_engine/dashboard.html"
+
+
+class LoginView(TemplateView):
+    template_name = "migration_engine/login.html"
 
 
 class NewMigrationView(TemplateView):
