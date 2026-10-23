@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from migration_engine.models import MigrationJob, MigrationRunLog
+from migration_engine.models import ConnectionProfile, MigrationJob, MigrationRunLog
 
 
 class HostedDBConfigSerializer(serializers.Serializer):
@@ -22,6 +22,29 @@ class DBConnectionConfigSerializer(serializers.Serializer):
     hosted_db = HostedDBConfigSerializer(required=False)
 
 
+class ConnectionProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConnectionProfile
+        fields = [
+            "id",
+            "name",
+            "db_type",
+            "database",
+            "host",
+            "port",
+            "username",
+            "password",
+            "uri",
+            "ssl_mode",
+            "hosted_provider",
+            "hosted_resource_id",
+            "hosted_api_url",
+            "hosted_api_token",
+            "hosted_metadata",
+            "created_at",
+        ]
+
+
 class ConnectionTestSerializer(serializers.Serializer):
     source = DBConnectionConfigSerializer()
     target = DBConnectionConfigSerializer()
@@ -39,9 +62,29 @@ class MigrationPlanSerializer(serializers.Serializer):
 
 
 class MigrationJobStatusSerializer(serializers.ModelSerializer):
+    source_profile_name = serializers.CharField(source="source_profile.name", read_only=True)
+    target_profile_name = serializers.CharField(source="target_profile.name", read_only=True)
+
     class Meta:
         model = MigrationJob
-        fields = ["id", "name", "status", "stage", "rows_read", "rows_written", "errors", "started_at", "updated_at", "finished_at"]
+        fields = [
+            "id",
+            "name",
+            "status",
+            "stage",
+            "old_table",
+            "new_table",
+            "source_profile",
+            "source_profile_name",
+            "target_profile",
+            "target_profile_name",
+            "rows_read",
+            "rows_written",
+            "errors",
+            "started_at",
+            "updated_at",
+            "finished_at",
+        ]
 
 
 class MigrationLogSerializer(serializers.ModelSerializer):

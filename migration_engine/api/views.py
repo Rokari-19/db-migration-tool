@@ -7,7 +7,31 @@ from migration_engine.domain.adapters.sqlite import SQLiteAdapter
 from migration_engine.domain.adapters.mongodb import MongoDBAdapter
 from migration_engine.infrastructure import HostedDBRef, get_hosted_db_wrapper
 from migration_engine.models import ConnectionProfile, MigrationJob
-from .serializers import ConnectionTestSerializer, MigrationPlanSerializer, MigrationJobStatusSerializer, MigrationLogSerializer
+from .serializers import (
+    ConnectionProfileSerializer,
+    ConnectionTestSerializer,
+    MigrationPlanSerializer,
+    MigrationJobStatusSerializer,
+    MigrationLogSerializer,
+)
+
+
+class ConnectionProfileAPIView(APIView):
+    def get(self, request):
+        profiles = ConnectionProfile.objects.order_by("name")
+        return Response(ConnectionProfileSerializer(profiles, many=True).data)
+
+    def post(self, request):
+        serializer = ConnectionProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = serializer.save()
+        return Response(ConnectionProfileSerializer(profile).data, status=status.HTTP_201_CREATED)
+
+
+class MigrationJobsAPIView(APIView):
+    def get(self, request):
+        jobs = MigrationJob.objects.select_related("source_profile", "target_profile").order_by("-updated_at")[:50]
+        return Response(MigrationJobStatusSerializer(jobs, many=True).data)
 
 
 class ConnectionTestAPIView(APIView):
