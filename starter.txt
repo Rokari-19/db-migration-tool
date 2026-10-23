@@ -18,7 +18,7 @@ cryptography==46.0.5
 dataclasses==0.6
 defusedxml==0.7.1
 dj-rest-auth==7.2.0
-Django==6.0.3
+Django==5.2
 django-allauth==65.15.0
 django-celery-beat==2.9.0
 django-channels==0.7.0
@@ -45,7 +45,7 @@ oauthlib==3.3.1
 packaging==26.0
 pandas==3.0.1
 prompt_toolkit==3.0.52
-psycopg2==2.9.11
+psycopg2-binary
 pycparser==3.0
 PyJWT==2.12.1
 pymongo==4.16.0

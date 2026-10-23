@@ -1,5 +1,7 @@
 env/
-db.sqlite3
+**.sqlite3
 **/__pycache__/
 .env
 venv/
+**.db3
+.python-version
